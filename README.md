@@ -1,19 +1,17 @@
-# vision
+##使用教程
+##电脑中需要安装node
+##启动前端服务器
+在visition文件中：
 
-## Project setup
-```
-npm install
-```
+1.npm install 
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
+2.npm run serve
 
-### Compiles and minifies for production
-```
-npm run build
-```
+##启动后端服务器
+在Koa2中:
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+1.npm install 
+
+2.node app.js
+
+##两个本地服务器需要同时运行
