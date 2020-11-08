@@ -1,32 +1,45 @@
 <template>
-    <div class="com-container">
-        <div class="com-chart" ref="map_ref">1111</div>
+    <div class="com-container" @dblclick="revertMap">
+        <div class="com-chart" ref="map_ref"></div>
     </div>
 </template>
 
 <script>
     import axios from 'axios'
     import 'assets/theme/chalk'
+    import { mapState } from 'vuex'
+    import { getProvinceMapInfo } from '@/utils/map_utils'
     export default {
     name: "Map",
     data(){
       return {
         chartInstance:null,
-        allData:null
+        allData:null,
+        dataMap:{}
       }
     },
+      created() {
+        this.$socket.registerCallBack('mapData',this.getData)
+      },
     mounted() {
       this.initChart()
-      this.getData()
+      this.$socket.send({
+        action:'getData',
+        socketType:'mapData',
+        chartName:'map',
+        value:''
+      })
       window.addEventListener('resize',this.screenAdapter)
       this.screenAdapter()
         },
     destroyed() {
       window.removeEventListener('resize',this.screenAdapter)
+      this.$socket.unRegisterCallBack('mapData')
+
     },
     methods:{
       async initChart(){
-        this.chartInstance = this.$echarts.init(this.$refs.map_ref,'chalk')
+        this.chartInstance = this.$echarts.init(this.$refs.map_ref,this.theme)
         const ret = await axios.get('http://localhost:8080/map/china.json')
         this.$echarts.registerMap('china',ret.data)
         const initOption = {
@@ -44,18 +57,6 @@
               areaColor:'#2E72Bf',
               borderColor:'#333',
             },
-            label: {
-              normal: { //静态的时候展示样式
-                textStyle: {
-                  color: "#fff",
-                  fontSize: 10,
-                  fontFamily: "Arial"
-                },
-                emphasis: { //动态展示的样式
-                  color:'#eeeeee',
-                },
-              }
-            },
           },
           legend:{
             left:'10%',
@@ -64,9 +65,22 @@
           }
         }
         this.chartInstance.setOption(initOption)
+        this.chartInstance.on('click',async arg =>{
+          const provinceInfo = getProvinceMapInfo(arg.name)
+          if(!this.dataMap[provinceInfo.key]){
+            const ret = await axios.get('http://localhost:8080/' + provinceInfo.path)
+            this.dataMap[provinceInfo.key] = ret.data
+            this.$echarts.registerMap(provinceInfo.key,ret.data)
+          }
+          const changeOption ={
+            geo:{
+              map:provinceInfo.key
+            }
+          }
+          this.chartInstance.setOption(changeOption)
+        })
       },
-      async getData(){
-        const { data:ret } = await this.$http.get('map')
+      getData(ret){
         this.allData = ret
         this.updataChart()
       },
@@ -93,11 +107,46 @@
         this.chartInstance.setOption(dataOption)
       },
       screenAdapter(){
-        const adapterOption = {}
+        const titleFontSize = this.$refs.map_ref.offsetWidth / 100 * 2.6
+        const adapterOption = {
+            title:{
+              textStyle: {
+                fontSize: titleFontSize
+              }
+            },
+          legend:{
+              itemGap:titleFontSize -10,
+            itemWidth:titleFontSize - 10,
+            itemHeight:titleFontSize - 10,
+            textStyle:{
+              fontSize:titleFontSize - 10,
+            }
+          }
+        }
         this.chartInstance.setOption(adapterOption)
         this.chartInstance.resize()
+      },
+      revertMap(){
+        const reverOption = {
+          geo:{
+            map:'china'
+          }
+        }
+        this.chartInstance.setOption(reverOption)
+      },
+    },
+      computed:{
+        ...mapState(['theme'])
+      },
+      watch:{
+        theme(){
+          this.chartInstance.dispose()
+          this.initChart()
+          this.screenAdapter()
+          this.updataChart()
+        }
       }
-    }
+
   }
 </script>
 

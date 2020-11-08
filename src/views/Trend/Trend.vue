@@ -7,12 +7,14 @@
                 ☆ {{item.text}}
             </div>
         </div>
-        <div class="com-chart" ref="trend_ref"></div>
+        <div class="com-chart" ref="trend_ref" @mouseover="stop" @mouseout="endStop"></div>
     </div>
 </template>
 
 <script>
   import 'assets/theme/chalk'
+  import { getThemeValue } from '@/utils/theme_utils'
+  import { mapState } from 'vuex'
   export default {
     name: "Trend",
     data(){
@@ -21,17 +23,28 @@
         allData: null, //从服务器获取到的所有数据
         textShow:false,
         choiceType:'map',
-        titleFontSize:0
+        titleFontSize:0,
+        choiceTypeKeyIndex:0,
+        timerID:null,
       }
+    },
+    created() {
+      this.$socket.registerCallBack('trendData',this.getData)
     },
     mounted() {
       this.initChart()
-      this.getData()
+      this.$socket.send({
+        action:'getData',
+        socketType:'trendData',
+        chartName:'trend',
+        value:''
+      })
       window.addEventListener('resize',this.screenAdapter)
       this.screenAdapter()
     },
     destroyed() {
       window.removeEventListener('resize',this.screenAdapter)
+      this.$socket.unRegisterCallBack('trendData')
     },
     computed:{
       selectTypes(){
@@ -53,7 +66,7 @@
       comStyle(){
         return {
           fontSize: this.titleFontSize + 'px',
-          backgroundColor:'#222733'
+          color:getThemeValue(this.theme).titleColor
 
         }
       },
@@ -62,9 +75,16 @@
           width:this.titleFontSize + 'px',
           height:this.titleFontSize + 'px',
         }
-      }
+      },
+      ...mapState(['theme'])
     },
     methods:{
+      stop(){
+        clearInterval(this.timerID)
+      },
+      endStop(){
+        this.itemData()
+      },
 
       textClick(item){
         this.choiceType = item
@@ -75,7 +95,8 @@
         this.textShow = !this.textShow
       },
       initChart(){
-        this.chartInstane = this.$echarts.init(this.$refs.trend_ref,'chalk')
+        this.chartInstane = this.$echarts.init(this.$refs.trend_ref,this.theme)
+
         const initOption = {
           legend: {
             left:20,
@@ -101,12 +122,12 @@
           }
         }
         this.chartInstane.setOption(initOption)
+
       },
-      async getData(){
-        const { data:ret } = await this.$http.get('trend')
+      getData(ret){
         this.allData = ret
         this.updataChart()
-        console.log(this.allData)
+        this.itemData()
       },
       updataChart(){
         //类目轴的数据
@@ -137,7 +158,6 @@
       },
       screenAdapter(){
         this.titleFontSize = this.$refs.trend_ref.offsetWidth / 100 * 2
-        console.log(this.titleFontSize)
         const adapterOption = {
           legend:{
             itemWidth:this.titleFontSize - 5,
@@ -149,6 +169,28 @@
         }
         this.chartInstane.setOption(adapterOption)
         this.chartInstane.resize()
+      },
+      itemData(){
+        if(this.getData){
+          clearInterval(this.timerID)
+        }
+        this.timerID = setInterval(()=>{
+          this.choiceTypeKeyIndex++
+          if(this.choiceTypeKeyIndex > this.allData.type.length - 1){
+            this.choiceTypeKeyIndex = 0
+          }
+          const { key:key } = this.allData.type[this.choiceTypeKeyIndex]
+          this.choiceType = key
+          this.updataChart()
+        },2500)
+      }
+    },
+    watch:{
+      theme(){
+        this.chartInstane.dispose()
+        this.initChart()
+        this.screenAdapter()
+        this.updataChart()
       }
     }
   }
@@ -178,4 +220,5 @@
         margin-top: 5px;
         cursor:pointer;
     }
+
 </style>

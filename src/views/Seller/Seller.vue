@@ -6,6 +6,7 @@
 
 <script>
     import 'assets/theme/chalk'
+    import { mapState } from 'vuex'
   export default {
     name: "Seller",
     data(){
@@ -17,19 +18,28 @@
         timerID:null,
       }
     },
+    created() {
+      this.$socket.registerCallBack('sellerData',this.getData)
+    },
     mounted() {
       this.initChart()
-      this.getData()
+      this.$socket.send({
+        action:'getData',
+        socketType:'sellerData',
+        chartName:'seller',
+        value:''
+      })
       window.addEventListener('resize',this.screenAdapter)
       this.screenAdapter()
     },
     destroyed() {
       clearInterval(this.timerID)
       window.removeEventListener('resize',this.screenAdapter)
+      this.$socket.unRegisterCallBack('sellerData')
     },
     methods:{
       initChart () {
-       this.chartInstance = this.$echarts.init(this.$refs.seller_ref,"chalk")
+       this.chartInstance = this.$echarts.init(this.$refs.seller_ref,this.theme)
         const initOption ={
           title:{
             text:'★ 商家商品销售情况 ☆',
@@ -93,9 +103,7 @@
           this.ctartInterval()
         })
       },
-     async getData () {
-       const { data:ret } = await this.$http.get('seller')
-       console.log(ret)
+     getData (ret) {
        this.allData = ret
        this.allData.sort(( a , b ) => a.value - b.value)
        this.totalPage = this.allData.length % 5 === 0 ? this.allData.length / 5 : this.allData.length / 5 + 1
@@ -108,7 +116,6 @@
         const showData = this.allData.slice(start,end)
         const sellerNames = showData.map(item => item.name)
         const sellerValue = showData.map(item => item.value)
-        console.log(sellerValue)
         const dataOption ={
           yAxis:{
             data:sellerNames
@@ -131,7 +138,6 @@
             this.currentPage = 1
           }
           this.updataChart()
-         console.log(this.totalPage,'----',this.currentPage)
        },3000)
       },
       screenAdapter() {
@@ -163,6 +169,17 @@
         this.chartInstance.resize()
       }
 
+    },
+    computed:{
+      ...mapState(['theme'])
+    },
+    watch:{
+      theme(){
+        this.chartInstance.dispose()
+        this.initChart()
+        this.screenAdapter()
+        this.updataChart()
+      }
     }
 
   }
