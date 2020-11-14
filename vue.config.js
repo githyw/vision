@@ -9,6 +9,9 @@ module.exports = {
         'views': '@/views',
       }
     }
+  },
+  devServer:{
+    port: 1314
   }
 }
 
