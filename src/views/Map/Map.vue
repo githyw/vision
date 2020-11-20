@@ -40,7 +40,7 @@
     methods:{
       async initChart(){
         this.chartInstance = this.$echarts.init(this.$refs.map_ref,this.theme)
-        const ret = await axios.get('http://42.192.16.209//map/china.json')
+        const ret = await axios.get('http://localhost:1314/map/china.json')
         this.$echarts.registerMap('china',ret.data)
         const initOption = {
           title:{
@@ -68,7 +68,7 @@
         this.chartInstance.on('click',async arg =>{
           const provinceInfo = getProvinceMapInfo(arg.name)
           if(!this.dataMap[provinceInfo.key]){
-            const ret = await axios.get('http://42.192.16.209/' + provinceInfo.path)
+            const ret = await axios.get('http://localhost/' + provinceInfo.path)
             this.dataMap[provinceInfo.key] = ret.data
             this.$echarts.registerMap(provinceInfo.key,ret.data)
           }
