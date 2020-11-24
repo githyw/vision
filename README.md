@@ -10,7 +10,7 @@
 
 ## 采用的技术
 
-1. 使用Cli4搭建的Vue2项目，地图(map)是用aixos获取的数据接口， 其他数据使用的是后台websocket推送到前端的
+1. 使用Cli4搭建的Vue2项目，地图(map)是用axios获取的数据接口， 其他数据使用的是后台websocket推送到前端的
 
 2. 结合了Echarts使数据渲染出图形来
 
